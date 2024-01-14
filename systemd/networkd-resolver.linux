@@ -1,0 +1,3 @@
+[DEFAULT]
+Redirect=127.0.0.1
+HostFile=/etc/hosts

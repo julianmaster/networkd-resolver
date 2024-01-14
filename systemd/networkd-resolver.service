@@ -1,0 +1,12 @@
+[Unit]
+Description=Networkd Resolver Service
+After=network.target
+
+[Service]
+Type=idle
+Restart=on-failure
+User=root
+ExecStart=/usr/bin/python3 /etc/systemd/system/networkd-resolver/networkd-resolver
+
+[Install]
+WantedBy=multi-user.target
