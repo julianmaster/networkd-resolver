@@ -6,19 +6,14 @@ import signal
 import sys
 import time
 
-
-class LoadFromFile(argparse.Action):
-    def __call__(self, parser, namespace, values, option_string=None):
-        with values as f:
-            parser.parse_args(f.read().split(), namespace)
-
-
 class NetworkdResolver():
     def __init__(self, args):
         self.logger = self._init_logger()
 
         self.config = configparser.ConfigParser()
-        self.config.read(args.file)
+        self.config.read(args.settings)
+        self.host_file = self.config['DEFAULT']['HostFile']
+        self.saved_host = self.config['DEFAULT']['SavedHost']
 
         signal.signal(signal.SIGTERM, self._handle_sigterm)
 
@@ -35,17 +30,17 @@ class NetworkdResolver():
 
     def start(self):
         try:
-            host_file = self.config['DEFAULT']['HostFile']
+            self._copy_content(self.host_file, self.saved_host)
 
             sites_to_be_blocked = self._fetch_urls()
 
-            current_data = self._get_last_modified_dict(host_file)
-            self._check_content(host_file, sites_to_be_blocked)
+            current_data = self._get_last_modified_dict(self.host_file)
+            self._check_content(self.host_file, sites_to_be_blocked)
 
             while True:
-                new_data = self._get_last_modified_dict(host_file)
+                new_data = self._get_last_modified_dict(self.host_file)
                 if new_data != current_data:
-                    self._check_content(host_file, sites_to_be_blocked)
+                    self._check_content(self.host_file, sites_to_be_blocked)
                     current_data = new_data
                 time.sleep(0.05)
         except KeyboardInterrupt:
@@ -54,6 +49,7 @@ class NetworkdResolver():
 
     def stop(self):
         self.logger.info('Cleaning up...')
+        self._copy_content(self.saved_host, self.host_file)
 
         sys.exit(0)
 
@@ -70,13 +66,14 @@ class NetworkdResolver():
     def _get_last_modified_dict(self, file_path: str) -> float:
         return os.stat(file_path).st_mtime
 
-    def _save_previous_content(self, file_path: str, save_path: str):
-        pass
+    def _copy_content(self, source_path: str, destination_path: str):
+        with open(source_path, 'r') as source, open(destination_path, 'w') as destination:
+            for line in source:
+                destination.write(line)
 
     def _check_content(self, file_path: str, sites_to_be_blocked: list):
         with open(file_path, "r+") as host_file:
             hosts = host_file.readlines()
-            host_file.seek(0)
             for site in sites_to_be_blocked:
                 if site not in hosts:
                     host_file.write(site + '\n')
@@ -86,25 +83,27 @@ class NetworkdResolver():
 #   MAIN   #
 ############
 
-arg_parser = argparse.ArgumentParser(usage="%prog [options] start|stop")
+arg_parser = argparse.ArgumentParser(usage="%(prog)s [options] start|stop")
 
 
 def usage():
     arg_parser.print_help()
-    print("\nHomepage: http://netkiller.github.io\r\nAuthor: Julien Maitre <julien.maitre@univ-lr.fr>\r\n")
+    print("\nHomepage: https://gitlab.univ-lr.fr/jmaitr03\r\nAuthor: Julien Maitre <julien.maitre@univ-lr.fr>\r\n")
     sys.exit()
 
 
 def main():
-    arg_parser.add_argument("--file", type=open, action=LoadFromFile, default="network-resolver")
+    arg_parser.add_argument("--settings", default="settings")
+    arg_parser.add_argument("state", choices=["start", "stop"], help="")
 
     args = arg_parser.parse_args()
+    print(args)
     if not args:
         usage()
 
-    if args.file:
-        if 'start' in args:
-            network_resolver = NetworkdResolver()
+    if args.settings:
+        if args.state == 'start':
+            network_resolver = NetworkdResolver(args)
             network_resolver.start()
         else:
             usage()

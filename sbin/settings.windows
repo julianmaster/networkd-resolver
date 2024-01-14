@@ -1,0 +1,4 @@
+[DEFAULT]
+Redirect=127.0.0.1
+HostFile=C:/Windows/System32/drivers/etc/hosts
+SavedHost=saved_host
