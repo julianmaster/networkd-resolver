@@ -1,4 +1,5 @@
 [DEFAULT]
-Redirect=127.0.0.1
-HostFile=/etc/hosts
-SavedHost=saved_host
+redirect=127.0.0.1
+url_list_file=conf/urllist
+host=/etc/hosts
+saved_file=saved_host

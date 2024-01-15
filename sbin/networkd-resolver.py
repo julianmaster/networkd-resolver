@@ -6,16 +6,36 @@ import signal
 import sys
 import time
 
+
 class NetworkdResolver():
     def __init__(self, args):
         self.logger = self._init_logger()
 
-        self.config = configparser.ConfigParser()
-        self.config.read(args.settings)
-        self.host_file = self.config['DEFAULT']['HostFile']
-        self.saved_host = self.config['DEFAULT']['SavedHost']
+        if not os.path.exists(args.settings):
+            self.logger.error("Settings file not found")
+            sys.exit(0)
 
         signal.signal(signal.SIGTERM, self._handle_sigterm)
+        self.config = configparser.ConfigParser()
+        self.config.read(args.settings)
+
+        if not self.config.has_option("DEFAULT", "redirect"):
+            self.logger.error("No redirect option in settings file")
+            sys.exit(0)
+        if not self.config.has_option("DEFAULT", "redirect"):
+            self.logger.error("No redirect option in settings file")
+            sys.exit(0)
+        if not self.config.has_option("DEFAULT", "host_file"):
+            self.logger.error("No host_file option in settings file")
+            sys.exit(0)
+        if not self.config.has_option("DEFAULT", "saved_file"):
+            self.logger.error("No saved_file option in settings file")
+            sys.exit(0)
+
+        self.redirect = self.config["DEFAULT"]["redirect"]
+        self.url_list_file = self.config["DEFAULT"]["url_list_file"]
+        self.host_file = self.config["DEFAULT"]["host_file"]
+        self.saved_host = self.config["DEFAULT"]["saved_file"]
 
         self.logger.info("Networkd-Resolver instance created")
 
@@ -50,7 +70,7 @@ class NetworkdResolver():
     def stop(self):
         self.logger.info('Cleaning up...')
         self._copy_content(self.saved_host, self.host_file)
-
+        os.remove(self.saved_host)
         sys.exit(0)
 
     def _handle_sigterm(self, sig, frame):
@@ -59,8 +79,8 @@ class NetworkdResolver():
 
     def _fetch_urls(self):
         url_list = list()
-        with open('../conf/urllist.txt') as file:
-            url_list = [self.config['DEFAULT']['Redirect'] + " " + line.rstrip() for line in file]
+        with open(self.url_list_file) as file:
+            url_list = [self.redirect + " " + line.rstrip() for line in file]
         return url_list
 
     def _get_last_modified_dict(self, file_path: str) -> float:
@@ -79,34 +99,25 @@ class NetworkdResolver():
                     host_file.write(site + '\n')
 
 
- ############
+############
 #   MAIN   #
 ############
 
-arg_parser = argparse.ArgumentParser(usage="%(prog)s [options] start|stop")
 
-
-def usage():
-    arg_parser.print_help()
-    print("\nHomepage: https://gitlab.univ-lr.fr/jmaitr03\r\nAuthor: Julien Maitre <julien.maitre@univ-lr.fr>\r\n")
-    sys.exit()
-
+class NetworkdResolverArgumentParser(argparse.ArgumentParser):
+    def print_help(self, file=None):
+        super().print_help()
+        print("\nHomepage: https://gitlab.univ-lr.fr/jmaitr03\r\nAuthor: Julien Maitre <julien.maitre@univ-lr.fr>\r\n")
+        sys.exit()
 
 def main():
-    arg_parser.add_argument("--settings", default="settings")
-    arg_parser.add_argument("state", choices=["start", "stop"], help="")
+    arg_parser = NetworkdResolverArgumentParser(usage="%(prog)s [options]")
+    arg_parser.add_argument("-s", "--settings", type=str, default="settings", help="Path to settings file", required=False)
 
     args = arg_parser.parse_args()
-    print(args)
-    if not args:
-        usage()
 
-    if args.settings:
-        if args.state == 'start':
-            network_resolver = NetworkdResolver(args)
-            network_resolver.start()
-        else:
-            usage()
+    network_resolver = NetworkdResolver(args)
+    network_resolver.start()
 
 
 if __name__ == "__main__":
