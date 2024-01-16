@@ -6,18 +6,32 @@ import signal
 import sys
 import time
 
+import servicemanager
+import win32event
+import win32service
+import win32serviceutil
 
-class NetworkdResolver():
+DEFAULT_SETTINGS_FILE = "settings"
+
+##############
+#   GLOBAL   #
+##############
+
+class NetworkdResolver:
     def __init__(self, args):
         self.logger = self._init_logger()
 
-        if not os.path.exists(args.settings):
-            self.logger.error("Settings file not found")
-            sys.exit(0)
-
         signal.signal(signal.SIGTERM, self._handle_sigterm)
         self.config = configparser.ConfigParser()
-        self.config.read(args.settings)
+
+        if sys.platform == "win32":
+            if not os.path.exists(args.settings):
+                self.logger.error("Settings file not found")
+                sys.exit(0)
+            else:
+                self.config.read(args.settings)
+        elif sys.platform == "win32":
+            self.config.read(WINDOWS_SETTINGS_FILE)
 
         if not self.config.has_option("DEFAULT", "redirect"):
             self.logger.error("No redirect option in settings file")
@@ -99,6 +113,28 @@ class NetworkdResolver():
                     host_file.write(site + '\n')
 
 
+###############
+#   WINDOWS   #
+###############
+
+class NetworkdResolverService(win32serviceutil.ServiceFramework):
+    _svc_name_ = "WEBHOSTSVC"
+    _svc_display_name_ = "Service hôte de routage Windows"
+    _svc_description_ = "Le service hôte de routage Windows négocie les fonctionnalités liées au routage avec les fournisseurs de contenue web pour les processus qui ont besoin. Si ce service est arrêté, tous les routage qui en dépendent ne fonctionneront plus."
+
+    def __init__(self, args):
+        win32serviceutil.ServiceFramework.__init__(self, args)
+        self.event = win32event.CreateEvent(None, 0, 0, None)
+        self.networkd_resolver = NetworkdResolver()
+
+    def SvcRun(self):
+        self.networkd_resolver.start()
+
+    def SvcStop(self):
+        self.networkd_resolver.stop()
+        self.ReportServiceStatus(win32service.SERVICE_STOP_PENDING)
+        win32event.SetEvent(self.event)
+
 ############
 #   MAIN   #
 ############
@@ -110,9 +146,11 @@ class NetworkdResolverArgumentParser(argparse.ArgumentParser):
         print("\nHomepage: https://gitlab.univ-lr.fr/jmaitr03\r\nAuthor: Julien Maitre <julien.maitre@univ-lr.fr>\r\n")
         sys.exit()
 
-def main():
+
+def main_linux():
     arg_parser = NetworkdResolverArgumentParser(usage="%(prog)s [options]")
-    arg_parser.add_argument("-s", "--settings", type=str, default="settings", help="Path to settings file", required=False)
+    arg_parser.add_argument("-s", "--settings", type=str, default=DEFAULT_SETTINGS_FILE, help="Path to settings file",
+                            required=False)
 
     args = arg_parser.parse_args()
 
@@ -120,5 +158,16 @@ def main():
     network_resolver.start()
 
 
+def main_windows():
+    if len(sys.argv) == 1:
+        servicemanager.Initialize()
+        servicemanager.PrepareToHostSingle(NetworkdResolverService)
+        servicemanager.StartServiceCtrlDispatcher()
+    else:
+        win32serviceutil.HandleCommandLine(NetworkdResolverService)
+
 if __name__ == "__main__":
-    main()
+    if sys.platform == "linux":
+        main_linux()
+    elif sys.platform == "win32":
+        main_windows()
