@@ -1,12 +1,36 @@
 # -*- mode: python ; coding: utf-8 -*-
 
+import os
+import tempfile
+
+TEMPLATE_PARAMETER: str = "%code%"
+
+added_files = [
+    ( 'sbin/settings_windows.ini', '.' ),
+    ( 'conf/urllist', '.' )
+]
+
+data = None
+template = None
+with open('template/windows_template.py', 'r', encoding='utf8') as file:
+    template = file.read()
+
+with open('sbin/networkd-resolver.py', 'r', encoding='utf8') as file:
+    code = file.read()
+    data = template.replace(TEMPLATE_PARAMETER, code)
+
+fp = tempfile.NamedTemporaryFile(delete_on_close=False)
+fp.write(bytes(data, 'utf-8'))
+filename = fp.name
+fp.close()
+print(open(filename)
 
 a = Analysis(
-    ['sbin\\networkd-resolver.py'],
+    [filename],
     pathex=[],
     binaries=[],
-    datas=[],
-    hiddenimports=[],
+    datas=added_files,
+    hiddenimports=['win32timezone'],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
@@ -21,7 +45,7 @@ exe = EXE(
     a.binaries,
     a.datas,
     [],
-    name='install_windows',
+    name='webhost',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
@@ -34,8 +58,7 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
+    icon=None,
 )
 
-import shutil
-shutil.copyfile('settings_windows.ini', '{0}/settings'.format(DISTPATH))
-shutil.copyfile('conf/urllist', '{0}/conf/urllist'.format(DISTPATH))
+os.remove(filename)

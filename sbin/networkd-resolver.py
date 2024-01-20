@@ -11,27 +11,38 @@ import win32event
 import win32service
 import win32serviceutil
 
-DEFAULT_SETTINGS_FILE = "settings"
+LINUX_SETTINGS_FILE = "settings"
+WINDOWS_SETTINGS_FILE = "settings_windows.ini"
 
 ##############
 #   GLOBAL   #
 ##############
 
+def resource_path(relative_path):
+    # Get absolute path to resource, works for dev and for PyInstaller
+    try:
+        # PyInstaller creates a temp folder and stores path in _MEIPASS
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+
+    return os.path.join(base_path, relative_path)
+
 class NetworkdResolver:
-    def __init__(self, args):
+    def __init__(self, args = None):
         self.logger = self._init_logger()
 
         signal.signal(signal.SIGTERM, self._handle_sigterm)
         self.config = configparser.ConfigParser()
 
-        if sys.platform == "win32":
+        if sys.platform == "linux" or sys.platform == "linux2":
             if not os.path.exists(args.settings):
                 self.logger.error("Settings file not found")
                 sys.exit(0)
             else:
                 self.config.read(args.settings)
         elif sys.platform == "win32":
-            self.config.read(WINDOWS_SETTINGS_FILE)
+            self.config.read(resource_path(WINDOWS_SETTINGS_FILE))
 
         if not self.config.has_option("DEFAULT", "redirect"):
             self.logger.error("No redirect option in settings file")
@@ -47,7 +58,10 @@ class NetworkdResolver:
             sys.exit(0)
 
         self.redirect = self.config["DEFAULT"]["redirect"]
-        self.url_list_file = self.config["DEFAULT"]["url_list_file"]
+        if sys.platform == "linux" or sys.platform == "linux2":
+            self.url_list_file = self.config["DEFAULT"]["url_list_file"]
+        elif sys.platform == "win32":
+            self.url_list_file = resource_path(self.config["DEFAULT"]["url_list_file"])
         self.host_file = self.config["DEFAULT"]["host_file"]
         self.saved_host = self.config["DEFAULT"]["saved_file"]
 
@@ -106,11 +120,14 @@ class NetworkdResolver:
                 destination.write(line)
 
     def _check_content(self, file_path: str, sites_to_be_blocked: list):
-        with open(file_path, "r+") as host_file:
-            hosts = host_file.readlines()
-            for site in sites_to_be_blocked:
-                if site not in hosts:
-                    host_file.write(site + '\n')
+        try:
+            with open(file_path, "r+") as host_file:
+                hosts = [line.rstrip() for line in host_file]
+                for site in sites_to_be_blocked:
+                    if site not in hosts:
+                        host_file.write(site + '\n')
+        except IOError:
+            time.sleep(0.05)
 
 
 ###############
@@ -125,14 +142,19 @@ class NetworkdResolverService(win32serviceutil.ServiceFramework):
     def __init__(self, args):
         win32serviceutil.ServiceFramework.__init__(self, args)
         self.event = win32event.CreateEvent(None, 0, 0, None)
-        self.networkd_resolver = NetworkdResolver()
+
 
     def SvcRun(self):
+        self.ReportServiceStatus(win32service.SERVICE_START_PENDING)
+        self.networkd_resolver = NetworkdResolver()
+        self.ReportServiceStatus(win32service.SERVICE_RUNNING)
+        # Run the service
         self.networkd_resolver.start()
 
     def SvcStop(self):
-        self.networkd_resolver.stop()
         self.ReportServiceStatus(win32service.SERVICE_STOP_PENDING)
+        self.networkd_resolver.stop()
+        self.ReportServiceStatus(win32service.SERVICE_STOPPED)
         win32event.SetEvent(self.event)
 
 ############
@@ -149,7 +171,7 @@ class NetworkdResolverArgumentParser(argparse.ArgumentParser):
 
 def main_linux():
     arg_parser = NetworkdResolverArgumentParser(usage="%(prog)s [options]")
-    arg_parser.add_argument("-s", "--settings", type=str, default=DEFAULT_SETTINGS_FILE, help="Path to settings file",
+    arg_parser.add_argument("-s", "--settings", type=str, default=LINUX_SETTINGS_FILE, help="Path to settings file",
                             required=False)
 
     args = arg_parser.parse_args()
