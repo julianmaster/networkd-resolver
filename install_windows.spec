@@ -20,10 +20,10 @@ with open('sbin/networkd-resolver.py', 'r', encoding='utf8') as file:
     data = template.replace(TEMPLATE_PARAMETER, code)
 
 fp = tempfile.NamedTemporaryFile(delete_on_close=False)
-fp.write(bytes(data, 'utf-8'))
-filename = fp.name
 fp.close()
-print(open(filename)
+with open(fp.name, 'w', encoding='utf-8') as f:
+    f.write(data)
+filename = fp.name
 
 a = Analysis(
     [filename],
@@ -58,7 +58,7 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon=None,
+    icon='icon/program.ico',
 )
 
 os.remove(filename)

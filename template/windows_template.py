@@ -1,7 +1,7 @@
 from cryptography.fernet import Fernet
 import base64
 
-code = b"""%code%"""
+code = """%code%"""
 
 key = Fernet.generate_key()
 encryption_type = Fernet(key)
