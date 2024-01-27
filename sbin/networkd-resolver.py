@@ -1,6 +1,6 @@
 import argparse
 import configparser
-import logging
+import logging.handlers
 import os
 import signal
 import sys
@@ -11,8 +11,32 @@ import win32event
 import win32service
 import win32serviceutil
 
+if sys.platform == "win32":
+    PROCESS_DATA_PATH = os.getenv("LOCALAPPDATA") + "/webhostsvc/"
+    LOG_FILE_PATH = PROCESS_DATA_PATH + "process.log"
+else:
+    PROCESS_DATA_PATH = "/var/log/networkd-resolver/"
+    LOG_FILE_PATH = PROCESS_DATA_PATH + "process.log"
+
+if not os.path.exists(PROCESS_DATA_PATH):
+    os.mkdir(PROCESS_DATA_PATH)
+
 LINUX_SETTINGS_FILE = "settings"
 WINDOWS_SETTINGS_FILE = "settings_windows.ini"
+
+###########
+#   LOG   #
+###########
+
+mylogger = logging.getLogger("NetworkdResolver")
+mylogger.setLevel(logging.DEBUG)
+handler = logging.handlers.RotatingFileHandler(LOG_FILE_PATH, maxBytes=10485760, backupCount=2)
+formatter = logging.Formatter('%(asctime)s - %(module)-10s - %(levelname)-8s %(message)s', '%d-%m-%Y %H:%M:%S')
+handler.setFormatter(formatter)
+mylogger.addHandler(handler)
+
+
+
 
 ##############
 #   GLOBAL   #
@@ -28,16 +52,18 @@ def resource_path(relative_path):
 
     return os.path.join(base_path, relative_path)
 
-class NetworkdResolver:
-    def __init__(self, args = None):
-        self.logger = self._init_logger()
 
-        signal.signal(signal.SIGTERM, self._handle_sigterm)
+class NetworkdResolver:
+    def __init__(self, args=None):
+        self.running = False
+        if sys.platform == "linux" or sys.platform == "linux2":
+            signal.signal(signal.SIGTERM, self._handle_sigterm)
+
         self.config = configparser.ConfigParser()
 
         if sys.platform == "linux" or sys.platform == "linux2":
             if not os.path.exists(args.settings):
-                self.logger.error("Settings file not found")
+                mylogger.error("Settings file not found")
                 sys.exit(0)
             else:
                 self.config.read(args.settings)
@@ -45,16 +71,16 @@ class NetworkdResolver:
             self.config.read(resource_path(WINDOWS_SETTINGS_FILE))
 
         if not self.config.has_option("DEFAULT", "redirect"):
-            self.logger.error("No redirect option in settings file")
+            mylogger.error("No redirect option in settings file")
             sys.exit(0)
         if not self.config.has_option("DEFAULT", "redirect"):
-            self.logger.error("No redirect option in settings file")
+            mylogger.error("No redirect option in settings file")
             sys.exit(0)
         if not self.config.has_option("DEFAULT", "host_file"):
-            self.logger.error("No host_file option in settings file")
+            mylogger.error("No host_file option in settings file")
             sys.exit(0)
         if not self.config.has_option("DEFAULT", "saved_file"):
-            self.logger.error("No saved_file option in settings file")
+            mylogger.error("No saved_file option in settings file")
             sys.exit(0)
 
         self.redirect = self.config["DEFAULT"]["redirect"]
@@ -65,44 +91,43 @@ class NetworkdResolver:
         self.host_file = self.config["DEFAULT"]["host_file"]
         self.saved_host = self.config["DEFAULT"]["saved_file"]
 
-        self.logger.info("Networkd-Resolver instance created")
-
-    def _init_logger(self, ):
-        logger = logging.getLogger(__name__)
-        logger.setLevel(logging.DEBUG)
-        stdout_handler = logging.StreamHandler()
-        stdout_handler.setLevel(logging.DEBUG)
-        stdout_handler.setFormatter(logging.Formatter('%(levelname)8s | %(message)s'))
-        logger.addHandler(stdout_handler)
-        return logger
+        mylogger.info("Networkd-Resolver instance created")
 
     def start(self):
         try:
+            self.running = True
+            mylogger.debug("Copying host file content")
             self._copy_content(self.host_file, self.saved_host)
 
+            mylogger.debug("Fetching url list file")
             sites_to_be_blocked = self._fetch_urls()
 
             current_data = self._get_last_modified_dict(self.host_file)
             self._check_content(self.host_file, sites_to_be_blocked)
 
-            while True:
+            mylogger.debug("Starting process...")
+            while self.running:
                 new_data = self._get_last_modified_dict(self.host_file)
                 if new_data != current_data:
                     self._check_content(self.host_file, sites_to_be_blocked)
                     current_data = new_data
                 time.sleep(0.05)
         except KeyboardInterrupt:
-            self.logger.warning('Keyboard interrupt (SIGINT) received...')
+            mylogger.warning('Keyboard interrupt (SIGINT) received...')
             self.stop()
 
     def stop(self):
-        self.logger.info('Cleaning up...')
+        running = False
+        time.sleep(0.5)
+        mylogger.info('Cleaning up...')
         self._copy_content(self.saved_host, self.host_file)
+        mylogger.info("Removing saved host file")
         os.remove(self.saved_host)
-        sys.exit(0)
+        if sys.platform == "linux" or sys.platform == "linux2":
+            sys.exit(0)
 
     def _handle_sigterm(self, sig, frame):
-        self.logger.warning('SIGTERM received...')
+        mylogger.warning('SIGTERM received...')
         self.stop()
 
     def _fetch_urls(self):
@@ -115,9 +140,12 @@ class NetworkdResolver:
         return os.stat(file_path).st_mtime
 
     def _copy_content(self, source_path: str, destination_path: str):
-        with open(source_path, 'r') as source, open(destination_path, 'w') as destination:
-            for line in source:
-                destination.write(line)
+        while True:
+            try:
+                with open(source_path, 'r') as source, open(destination_path, 'w') as destination:
+                    destination.write(source.read())
+            except IOError:
+                time.sleep(0.05)
 
     def _check_content(self, file_path: str, sites_to_be_blocked: list):
         try:
@@ -136,26 +164,37 @@ class NetworkdResolver:
 
 class NetworkdResolverService(win32serviceutil.ServiceFramework):
     _svc_name_ = "WEBHOSTSVC"
-    _svc_display_name_ = "Service hôte de routage Windows"
-    _svc_description_ = "Le service hôte de routage Windows négocie les fonctionnalités liées au routage avec les fournisseurs de contenue web pour les processus qui ont besoin. Si ce service est arrêté, tous les routage qui en dépendent ne fonctionneront plus."
+    _svc_display_name_ = "Windows Routing Service"
+    _svc_description_ = "The Windows Routing Service negotiates routing-related features with web content providers for processes that require it. If this service is stopped, all routing dependent on it will cease to function."
 
     def __init__(self, args):
+        self.args = args
+        mylogger.debug("Initializing NetworkdResolverService")
         win32serviceutil.ServiceFramework.__init__(self, args)
+        mylogger.debug("Creating event...")
         self.event = win32event.CreateEvent(None, 0, 0, None)
 
-
-    def SvcRun(self):
+    def SvcDoRun(self):
+        mylogger.debug("Report starting NetworkdResolverService")
         self.ReportServiceStatus(win32service.SERVICE_START_PENDING)
-        self.networkd_resolver = NetworkdResolver()
+        mylogger.debug("Creating NetworkdResolver")
+        self.networkd_resolver = NetworkdResolver(self.args)
+        mylogger.debug("Report running NetworkdResolverService")
         self.ReportServiceStatus(win32service.SERVICE_RUNNING)
         # Run the service
         self.networkd_resolver.start()
 
     def SvcStop(self):
+        mylogger.debug("Report stopping NetworkdResolverService")
         self.ReportServiceStatus(win32service.SERVICE_STOP_PENDING)
         self.networkd_resolver.stop()
+        mylogger.debug("Reporting stopped NetworkdResolverService")
         self.ReportServiceStatus(win32service.SERVICE_STOPPED)
         win32event.SetEvent(self.event)
+
+    def SvcShutdown(self):
+        self.SvcStop()
+
 
 ############
 #   MAIN   #
@@ -188,8 +227,8 @@ def main_windows():
     else:
         win32serviceutil.HandleCommandLine(NetworkdResolverService)
 
-if __name__ == "__main__":
-    if sys.platform == "linux":
-        main_linux()
-    elif sys.platform == "win32":
-        main_windows()
+
+if sys.platform == "linux" or sys.platform == "linux2":
+    main_linux()
+elif sys.platform == "win32":
+    main_windows()

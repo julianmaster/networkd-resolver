@@ -10,7 +10,6 @@ déjà installés localement.
 ```shell
 pip install pywin32
 pip install pyinstaller
-pip install cryptography
 ```
 
 ### Création de l'installeur Windows
