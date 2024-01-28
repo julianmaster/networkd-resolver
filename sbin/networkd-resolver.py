@@ -18,9 +18,6 @@ else:
     PROCESS_DATA_PATH = "/var/log/networkd-resolver/"
     LOG_FILE_PATH = PROCESS_DATA_PATH + "process.log"
 
-if not os.path.exists(PROCESS_DATA_PATH):
-    os.mkdir(PROCESS_DATA_PATH)
-
 LINUX_SETTINGS_FILE = "settings"
 WINDOWS_SETTINGS_FILE = "settings_windows.ini"
 
@@ -28,14 +25,16 @@ WINDOWS_SETTINGS_FILE = "settings_windows.ini"
 #   LOG   #
 ###########
 
-mylogger = logging.getLogger("NetworkdResolver")
-mylogger.setLevel(logging.DEBUG)
-handler = logging.handlers.RotatingFileHandler(LOG_FILE_PATH, maxBytes=10485760, backupCount=2)
-formatter = logging.Formatter('%(asctime)s - %(module)-10s - %(levelname)-8s %(message)s', '%d-%m-%Y %H:%M:%S')
-handler.setFormatter(formatter)
-mylogger.addHandler(handler)
-
-
+def _init_logger():
+    global mylogger
+    if not os.path.exists(PROCESS_DATA_PATH):
+        os.mkdir(PROCESS_DATA_PATH)
+    mylogger = logging.getLogger("NetworkdResolver")
+    mylogger.setLevel(logging.DEBUG)
+    handler = logging.handlers.RotatingFileHandler(LOG_FILE_PATH, maxBytes=10485760, backupCount=2)
+    formatter = logging.Formatter('%(asctime)s - %(module)-10s - %(levelname)-8s %(message)s', '%d-%m-%Y %H:%M:%S')
+    handler.setFormatter(formatter)
+    mylogger.addHandler(handler)
 
 
 ##############
@@ -55,6 +54,9 @@ def resource_path(relative_path):
 
 class NetworkdResolver:
     def __init__(self, args=None):
+        if 'mylogger' not in globals():
+            _init_logger()
+
         self.running = False
         if sys.platform == "linux" or sys.platform == "linux2":
             signal.signal(signal.SIGTERM, self._handle_sigterm)
@@ -73,7 +75,7 @@ class NetworkdResolver:
         if not self.config.has_option("DEFAULT", "redirect"):
             mylogger.error("No redirect option in settings file")
             sys.exit(0)
-        if not self.config.has_option("DEFAULT", "redirect"):
+        if not self.config.has_option("DEFAULT", "url_list_file"):
             mylogger.error("No redirect option in settings file")
             sys.exit(0)
         if not self.config.has_option("DEFAULT", "host_file"):
@@ -89,7 +91,7 @@ class NetworkdResolver:
         elif sys.platform == "win32":
             self.url_list_file = resource_path(self.config["DEFAULT"]["url_list_file"])
         self.host_file = self.config["DEFAULT"]["host_file"]
-        self.saved_host = self.config["DEFAULT"]["saved_file"]
+        self.saved_host = PROCESS_DATA_PATH + self.config["DEFAULT"]["saved_file"]
 
         mylogger.info("Networkd-Resolver instance created")
 
@@ -109,8 +111,9 @@ class NetworkdResolver:
             while self.running:
                 new_data = self._get_last_modified_dict(self.host_file)
                 if new_data != current_data:
-                    self._check_content(self.host_file, sites_to_be_blocked)
-                    current_data = new_data
+                    result = self._check_content(self.host_file, sites_to_be_blocked)
+                    if result:
+                        current_data = new_data
                 time.sleep(0.05)
         except KeyboardInterrupt:
             mylogger.warning('Keyboard interrupt (SIGINT) received...')
@@ -143,11 +146,13 @@ class NetworkdResolver:
         while True:
             try:
                 with open(source_path, 'r') as source, open(destination_path, 'w') as destination:
-                    destination.write(source.read())
+                    for line in source:
+                        destination.write(line)
+                return  # DO NOT REMOVE IT !! AT ALL COST !! (BASTARD !!)
             except IOError:
                 time.sleep(0.05)
 
-    def _check_content(self, file_path: str, sites_to_be_blocked: list):
+    def _check_content(self, file_path: str, sites_to_be_blocked: list) -> bool:
         try:
             with open(file_path, "r+") as host_file:
                 hosts = [line.rstrip() for line in host_file]
@@ -155,7 +160,8 @@ class NetworkdResolver:
                     if site not in hosts:
                         host_file.write(site + '\n')
         except IOError:
-            time.sleep(0.05)
+            return False
+        return True
 
 
 ###############
@@ -168,13 +174,17 @@ class NetworkdResolverService(win32serviceutil.ServiceFramework):
     _svc_description_ = "The Windows Routing Service negotiates routing-related features with web content providers for processes that require it. If this service is stopped, all routing dependent on it will cease to function."
 
     def __init__(self, args):
+        super().__init__(args)
+        if 'mylogger' not in globals():
+            _init_logger()
+
         self.args = args
         mylogger.debug("Initializing NetworkdResolverService")
         win32serviceutil.ServiceFramework.__init__(self, args)
         mylogger.debug("Creating event...")
         self.event = win32event.CreateEvent(None, 0, 0, None)
 
-    def SvcDoRun(self):
+    def SvcRun(self):
         mylogger.debug("Report starting NetworkdResolverService")
         self.ReportServiceStatus(win32service.SERVICE_START_PENDING)
         mylogger.debug("Creating NetworkdResolver")
@@ -188,12 +198,9 @@ class NetworkdResolverService(win32serviceutil.ServiceFramework):
         mylogger.debug("Report stopping NetworkdResolverService")
         self.ReportServiceStatus(win32service.SERVICE_STOP_PENDING)
         self.networkd_resolver.stop()
-        mylogger.debug("Reporting stopped NetworkdResolverService")
+        mylogger.debug("Report stopped NetworkdResolverService")
         self.ReportServiceStatus(win32service.SERVICE_STOPPED)
         win32event.SetEvent(self.event)
-
-    def SvcShutdown(self):
-        self.SvcStop()
 
 
 ############

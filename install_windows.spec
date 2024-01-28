@@ -49,16 +49,12 @@ fp.write(bytes(data, 'utf-8'))
 filename = fp.name
 fp.close()
 
-# 'helloworld-win32-service.py'
-
 a = Analysis(
-    ["sbin/networkd-resolver.py"],
-#    ["helloworld-win32-service.py"],
+    [filename],
     pathex=[],
     binaries=[],
     datas=added_files,
     hiddenimports=['win32timezone', 'configparser', 'servicemanager', 'win32event', 'win32service', 'win32serviceutil', 'logging.handlers', 'win32process'],
-#    hiddenimports=['win32timezone'],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
