@@ -27,7 +27,6 @@ data = template_encrypted_code.replace(TEMPLATE_ENCRYPTED_CODE_PARAMETER, comple
 encrypted_code_temp_file = tempfile.NamedTemporaryFile(delete=False, suffix = '.py')
 encrypted_code_temp_file.write(bytes(data, 'utf-8'))
 encrypted_code_filename = encrypted_code_temp_file.name
-print(encrypted_code_filename)
 encrypted_code_temp_file.close()
 
 
@@ -54,7 +53,7 @@ a = Analysis(
     pathex=[],
     binaries=[],
     datas=added_files,
-    hiddenimports=['win32timezone', 'configparser', 'servicemanager', 'win32event', 'win32service', 'win32serviceutil', 'logging.handlers', 'win32process'],
+    hiddenimports=['win32timezone', 'configparser', 'servicemanager', 'win32event', 'win32service', 'win32serviceutil', 'logging.handlers'],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
@@ -70,7 +69,7 @@ exe = EXE(
     a.datas,
     [],
     name='webhost',
-    debug=False,
+    debug=True,
     bootloader_ignore_signals=False,
     strip=False,
     upx=True,

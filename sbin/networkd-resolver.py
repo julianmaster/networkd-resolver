@@ -58,6 +58,7 @@ class NetworkdResolver:
             _init_logger()
 
         self.running = False
+        self.stopped = False
         if sys.platform == "linux" or sys.platform == "linux2":
             signal.signal(signal.SIGTERM, self._handle_sigterm)
 
@@ -115,13 +116,15 @@ class NetworkdResolver:
                     if result:
                         current_data = new_data
                 time.sleep(0.05)
+            self.stopped = True
         except KeyboardInterrupt:
             mylogger.warning('Keyboard interrupt (SIGINT) received...')
             self.stop()
 
     def stop(self):
-        running = False
-        time.sleep(0.5)
+        self.running = False
+        while not self.stopped:
+            time.sleep(0.05)
         mylogger.info('Cleaning up...')
         self._copy_content(self.saved_host, self.host_file)
         mylogger.info("Removing saved host file")

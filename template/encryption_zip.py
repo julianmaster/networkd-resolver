@@ -2,20 +2,19 @@ import os
 import py_compile
 import shutil
 import sys
-import tempfile
 import zipfile
 from io import BytesIO
-from pathlib import Path
 
 BUILD_FOLDER = "../Build"
 
+
 class ZipUtilities:
 
-    def __init__(self, file, mode, compression, substitution = []):
+    def __init__(self, file, mode, compression, substitution=[]):
         self.zip_file = zipfile.PyZipFile(file, mode, compression, False)
         self.substitution = substitution
 
-    def add_file(self, source_file, destination_file=None, run_substitution = True):
+    def add_file(self, source_file, destination_file=None, run_substitution=True):
         # Check source file extension
         source_root, source_ext = os.path.splitext(source_file)
         source_basename = os.path.basename(source_file)
@@ -36,9 +35,9 @@ class ZipUtilities:
             # Substitution
             if run_substitution:
                 for source_text, destination_text in self.substitution:
-                    temp_text = temp_text.replace("import "+source_text, "import "+destination_text)
-                    if "from "+source_text in temp_text:
-                        temp_text = temp_text.replace("from "+source_text, "from "+destination_text)
+                    temp_text = temp_text.replace("import " + source_text, "import " + destination_text)
+                    if "from " + source_text in temp_text:
+                        temp_text = temp_text.replace("from " + source_text, "from " + destination_text)
                     else:
                         temp_text = temp_text.replace(source_text, destination_text)
 
@@ -49,7 +48,8 @@ class ZipUtilities:
 
         # Compile and zip file
         if source_ext == ".py":
-            py_compile.compile(os.path.join(BUILD_FOLDER, source_basename), os.path.join(BUILD_FOLDER, destination_file))
+            py_compile.compile(os.path.join(BUILD_FOLDER, source_basename),
+                               os.path.join(BUILD_FOLDER, destination_file))
         self.zip_file.write(os.path.join(BUILD_FOLDER, destination_file), arcname=destination_file)
 
         # Remove files
@@ -85,7 +85,8 @@ def main(argv):
 
     in_memory_zip = BytesIO()
 
-    substitution = [("decryption", "deck"), ("ferent", "watermelon"), ("aes", "road"), ("blockfeeder", "star"), ("hmac", "lemon")]
+    substitution = [("decryption", "deck"), ("ferent", "watermelon"), ("aes", "road"), ("blockfeeder", "star"),
+                    ("hmac", "lemon")]
 
     zu = ZipUtilities(in_memory_zip, "w", zipfile.ZIP_LZMA, substitution)
     zu.add_file(argv[1], "deck.pyc")
