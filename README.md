@@ -4,8 +4,7 @@
 
 ## Installation du projet
 
-Ce projet utilise [python3](https://www.python.org/) et [pip](https://pypi.org/). Allez les voir si vous ne les avez pas
-déjà installés localement.
+Ce projet utilise [python3](https://www.python.org/) et [pip](https://pypi.org/). Allez les voir si vous ne les avez pas déjà installés localement.
 
 ```shell
 pip install pywin32
