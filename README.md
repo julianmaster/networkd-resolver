@@ -18,21 +18,24 @@ pywin32_postinstall.py -install
 pyinstaller --clean .\build_windows.spec
 ```
 
-Le fichier exécutable finale `webhost.exe` se trouve dans le dossier `dist` du projet.
+Le fichier exécutable final `webhost.exe` se trouve dans le dossier `dist` du projet.
 
 ### Installation sous Windows
 
-Après avoir réalisées les étapes [Installation du projet](#installation-du-projet) et [Création de l'exécutable Windows](#création-de-lexécutable-windows), lancez le script `install_windows.ps1` avec un clique droit et `Exécuter avec PowerShell`.
+Après avoir réalisé les étapes [Installation du projet](#installation-du-projet) et [Création de l'exécutable Windows](#création-de-lexécutable-windows), lancez le script `install_windows.ps1` avec un clique droit et `Exécuter avec PowerShell`.
 
 ### Installation sous Linux
 
-TODO
+Lancez le script `install_linux.sh` depuis un terminal.
 
 ### Désinstallation sous Windows
 
 Lancez le script `uninstall_windows.ps1` avec un clique droit et `Exécuter avec PowerShell`.
 
+### Désinstallation sous Linux
+
+Lancez le script `uninstall_linux.sh` depuis un terminal.
+
 ### Icone du programme
 
-Extrait (avec 7-Zip) du dossier `ICON` dans le fichier `C:\Windows\SystemResources\imageres.dll.mun`. Transformation en
-un fichier `program.ico` multi-image au moyen du script `convert_and_build.ps1`.
+Extrait (avec 7-Zip) du dossier `ICON` dans le fichier `C:\Windows\SystemResources\imageres.dll.mun`. Transformation en un fichier `program.ico` multi-image au moyen du script `convert_and_build.ps1`.
