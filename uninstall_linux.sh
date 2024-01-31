@@ -3,7 +3,7 @@
 sudo systemctl stop networkd-resolver.service
 sudo systemctl disable networkd-resolver.service
 
-sudo rm /etc/systemd/system/networkd-resolver
+sudo rm -rf /etc/systemd/system/networkd-resolver
 
-systemctl daemon-reload
-systemctl reset-failed
+sudo systemctl daemon-reload
+sudo systemctl reset-failed

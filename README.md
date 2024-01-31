@@ -26,15 +26,24 @@ Après avoir réalisé les étapes [Installation du projet](#installation-du-pro
 
 ### Installation sous Linux
 
-Lancez le script `install_linux.sh` depuis un terminal.
+Depuis un terminal :
 
+```shell
+sudo chmod +x install_linux.sh
+./install_linux.sh
+```
 ### Désinstallation sous Windows
 
 Lancez le script `uninstall_windows.ps1` avec un clique droit et `Exécuter avec PowerShell`.
 
 ### Désinstallation sous Linux
 
-Lancez le script `uninstall_linux.sh` depuis un terminal.
+Depuis un terminal :
+
+```shell
+sudo chmod +x install_linux.sh
+./uninstall_linux.sh
+```
 
 ### Icone du programme
 

@@ -172,39 +172,40 @@ class NetworkdResolver:
 #   WINDOWS   #
 ###############
 
-class NetworkdResolverService(win32serviceutil.ServiceFramework):
-    _svc_name_ = "WEBHOSTSVC"
-    _svc_display_name_ = "Windows Routing Service"
-    _svc_description_ = "The Windows Routing Service negotiates routing-related features with web content providers for processes that require it. If this service is stopped, all routing dependent on it will cease to function."
+if sys.platform == "win32":
+    class NetworkdResolverService(win32serviceutil.ServiceFramework):
+        _svc_name_ = "WEBHOSTSVC"
+        _svc_display_name_ = "Windows Routing Service"
+        _svc_description_ = "The Windows Routing Service negotiates routing-related features with web content providers for processes that require it. If this service is stopped, all routing dependent on it will cease to function."
 
-    def __init__(self, args):
-        super().__init__(args)
-        if 'mylogger' not in globals():
-            _init_logger()
+        def __init__(self, args):
+            super().__init__(args)
+            if 'mylogger' not in globals():
+                _init_logger()
 
-        self.args = args
-        mylogger.debug("Initializing NetworkdResolverService")
-        win32serviceutil.ServiceFramework.__init__(self, args)
-        mylogger.debug("Creating event...")
-        self.event = win32event.CreateEvent(None, 0, 0, None)
+            self.args = args
+            mylogger.debug("Initializing NetworkdResolverService")
+            win32serviceutil.ServiceFramework.__init__(self, args)
+            mylogger.debug("Creating event...")
+            self.event = win32event.CreateEvent(None, 0, 0, None)
 
-    def SvcRun(self):
-        mylogger.debug("Report starting NetworkdResolverService")
-        self.ReportServiceStatus(win32service.SERVICE_START_PENDING)
-        mylogger.debug("Creating NetworkdResolver")
-        self.networkd_resolver = NetworkdResolver(self.args)
-        mylogger.debug("Report running NetworkdResolverService")
-        self.ReportServiceStatus(win32service.SERVICE_RUNNING)
-        # Run the service
-        self.networkd_resolver.start()
+        def SvcRun(self):
+            mylogger.debug("Report starting NetworkdResolverService")
+            self.ReportServiceStatus(win32service.SERVICE_START_PENDING)
+            mylogger.debug("Creating NetworkdResolver")
+            self.networkd_resolver = NetworkdResolver(self.args)
+            mylogger.debug("Report running NetworkdResolverService")
+            self.ReportServiceStatus(win32service.SERVICE_RUNNING)
+            # Run the service
+            self.networkd_resolver.start()
 
-    def SvcStop(self):
-        mylogger.debug("Report stopping NetworkdResolverService")
-        self.ReportServiceStatus(win32service.SERVICE_STOP_PENDING)
-        self.networkd_resolver.stop()
-        mylogger.debug("Report stopped NetworkdResolverService")
-        self.ReportServiceStatus(win32service.SERVICE_STOPPED)
-        win32event.SetEvent(self.event)
+        def SvcStop(self):
+            mylogger.debug("Report stopping NetworkdResolverService")
+            self.ReportServiceStatus(win32service.SERVICE_STOP_PENDING)
+            self.networkd_resolver.stop()
+            mylogger.debug("Report stopped NetworkdResolverService")
+            self.ReportServiceStatus(win32service.SERVICE_STOPPED)
+            win32event.SetEvent(self.event)
 
 
 ############
