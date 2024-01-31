@@ -19,7 +19,7 @@ else:
     PROCESS_DATA_PATH = "/var/log/networkd-resolver/"
     LOG_FILE_PATH = PROCESS_DATA_PATH + "process.log"
 
-LINUX_SETTINGS_FILE = "settings"
+LINUX_SETTINGS_FILE = "/etc/systemd/system/networkd-resolver/sbin/settings"
 WINDOWS_SETTINGS_FILE = "settings_windows.ini"
 
 ###########
@@ -78,10 +78,10 @@ class NetworkdResolver:
             mylogger.error("No redirect option in settings file")
             sys.exit(0)
         if not self.config.has_option("DEFAULT", "url_list_file"):
-            mylogger.error("No redirect option in settings file")
+            mylogger.error("No url_list_file option in settings file")
             sys.exit(0)
-        if not self.config.has_option("DEFAULT", "host_file"):
-            mylogger.error("No host_file option in settings file")
+        if not self.config.has_option("DEFAULT", "hosts_file"):
+            mylogger.error("No hosts_file option in settings file")
             sys.exit(0)
         if not self.config.has_option("DEFAULT", "saved_file"):
             mylogger.error("No saved_file option in settings file")
@@ -92,7 +92,7 @@ class NetworkdResolver:
             self.url_list_file = self.config["DEFAULT"]["url_list_file"]
         elif sys.platform == "win32":
             self.url_list_file = resource_path(self.config["DEFAULT"]["url_list_file"])
-        self.host_file = self.config["DEFAULT"]["host_file"]
+        self.hosts_file = self.config["DEFAULT"]["hosts_file"]
         self.saved_host = PROCESS_DATA_PATH + self.config["DEFAULT"]["saved_file"]
 
         mylogger.info("Networkd-Resolver instance created")
@@ -101,19 +101,19 @@ class NetworkdResolver:
         try:
             self.running = True
             mylogger.debug("Copying host file content")
-            self._copy_content(self.host_file, self.saved_host)
+            self._copy_content(self.hosts_file, self.saved_host)
 
             mylogger.debug("Fetching url list file")
             sites_to_be_blocked = self._fetch_urls()
 
-            current_data = self._get_last_modified_dict(self.host_file)
-            self._check_content(self.host_file, sites_to_be_blocked)
+            current_data = self._get_last_modified_dict(self.hosts_file)
+            self._check_content(self.hosts_file, sites_to_be_blocked)
 
             mylogger.debug("Starting process...")
             while self.running:
-                new_data = self._get_last_modified_dict(self.host_file)
+                new_data = self._get_last_modified_dict(self.hosts_file)
                 if new_data != current_data:
-                    result = self._check_content(self.host_file, sites_to_be_blocked)
+                    result = self._check_content(self.hosts_file, sites_to_be_blocked)
                     if result:
                         current_data = new_data
                 time.sleep(0.05)
@@ -127,7 +127,7 @@ class NetworkdResolver:
         while not self.stopped:
             time.sleep(0.05)
         mylogger.info('Cleaning up...')
-        self._copy_content(self.saved_host, self.host_file)
+        self._copy_content(self.saved_host, self.hosts_file)
         mylogger.info("Removing saved host file")
         os.remove(self.saved_host)
         if sys.platform == "linux" or sys.platform == "linux2":

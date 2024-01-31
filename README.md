@@ -41,7 +41,7 @@ Lancez le script `uninstall_windows.ps1` avec un clique droit et `Exécuter avec
 Depuis un terminal :
 
 ```shell
-sudo chmod +x install_linux.sh
+sudo chmod +x uninstall_linux.sh
 ./uninstall_linux.sh
 ```
 
