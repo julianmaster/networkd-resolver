@@ -6,10 +6,11 @@ import signal
 import sys
 import time
 
-import servicemanager
-import win32event
-import win32service
-import win32serviceutil
+if sys.platform == "win32":
+    import servicemanager
+    import win32event
+    import win32service
+    import win32serviceutil
 
 if sys.platform == "win32":
     PROCESS_DATA_PATH = os.getenv("LOCALAPPDATA") + "/webhostsvc/"

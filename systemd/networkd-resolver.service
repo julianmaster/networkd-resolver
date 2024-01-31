@@ -6,7 +6,7 @@ After=network.target
 Type=idle
 Restart=on-failure
 User=root
-ExecStart=/usr/bin/python3 /etc/systemd/system/networkd-resolver/networkd-resolver
+ExecStart=/usr/bin/python3 /etc/systemd/system/networkd-resolver/sbin/networkd-resolver
 
 [Install]
 WantedBy=multi-user.target
