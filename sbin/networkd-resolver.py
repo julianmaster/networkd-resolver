@@ -126,8 +126,9 @@ class NetworkdResolver:
 
     def stop(self):
         self.running = False
-        while not self.stopped:
-            time.sleep(0.05)
+        if sys.platform == "win32":
+            while not self.stopped:
+                time.sleep(0.05)
         mylogger.info('Cleaning up...')
         self._copy_content(self.saved_host, self.hosts_file)
         mylogger.info("Removing saved host file")
