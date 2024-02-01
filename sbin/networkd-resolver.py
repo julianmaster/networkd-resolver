@@ -14,10 +14,12 @@ if sys.platform == "win32":
 
 if sys.platform == "win32":
     PROCESS_DATA_PATH = os.getenv("LOCALAPPDATA") + "/webhostsvc/"
+    LOG_PATH = PROCESS_DATA_PATH
     LOG_FILE_PATH = PROCESS_DATA_PATH + "process.log"
 else:
-    PROCESS_DATA_PATH = "/var/log/networkd-resolver/"
-    LOG_FILE_PATH = PROCESS_DATA_PATH + "process.log"
+    PROCESS_DATA_PATH = "/etc/systemd/system/networkd-resolver"
+    LOG_PATH = "/var/log/networkd-resolver/"
+    LOG_FILE_PATH = LOG_PATH + "process.log"
 
 LINUX_SETTINGS_FILE = "/etc/systemd/system/networkd-resolver/sbin/settings"
 WINDOWS_SETTINGS_FILE = "settings_windows.ini"
@@ -28,8 +30,8 @@ WINDOWS_SETTINGS_FILE = "settings_windows.ini"
 
 def _init_logger():
     global mylogger
-    if not os.path.exists(PROCESS_DATA_PATH):
-        os.mkdir(PROCESS_DATA_PATH)
+    if not os.path.exists(LOG_PATH):
+        os.mkdir(LOG_PATH)
     mylogger = logging.getLogger("NetworkdResolver")
     mylogger.setLevel(logging.DEBUG)
     handler = logging.handlers.RotatingFileHandler(LOG_FILE_PATH, maxBytes=10485760, backupCount=2)
@@ -89,7 +91,7 @@ class NetworkdResolver:
 
         self.redirect = self.config["DEFAULT"]["redirect"]
         if sys.platform == "linux" or sys.platform == "linux2":
-            self.url_list_file = self.config["DEFAULT"]["url_list_file"]
+            self.url_list_file = PROCESS_DATA_PATH + self.config["DEFAULT"]["url_list_file"]
         elif sys.platform == "win32":
             self.url_list_file = resource_path(self.config["DEFAULT"]["url_list_file"])
         self.hosts_file = self.config["DEFAULT"]["hosts_file"]

@@ -29,7 +29,7 @@ Après avoir réalisé les étapes [Installation du projet](#installation-du-pro
 Depuis un terminal :
 
 ```shell
-sudo chmod +x install_linux.sh
+chmod +x install_linux.sh
 ./install_linux.sh
 ```
 ### Désinstallation sous Windows
@@ -41,7 +41,7 @@ Lancez le script `uninstall_windows.ps1` avec un clique droit et `Exécuter avec
 Depuis un terminal :
 
 ```shell
-sudo chmod +x uninstall_linux.sh
+chmod +x uninstall_linux.sh
 ./uninstall_linux.sh
 ```
 
