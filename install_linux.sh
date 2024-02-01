@@ -13,3 +13,11 @@ sudo install -D -m 0644 -o root systemd/networkd-resolver.service /etc/systemd/s
 sudo systemctl daemon-reload
 sudo systemctl enable networkd-resolver.service
 sudo systemctl start networkd-resolver.service
+
+read -p "Voulez-vous effacer tout l'historique des commandes ? (oui|o ou non|n) " clr
+if [[ $clr == "oui" || $clr == "o" ]]
+then
+  history -cw
+fi
+
+echo "Installation terminé !"

@@ -9,3 +9,11 @@ sudo rm -rf /var/log/networkd-resolver
 
 sudo systemctl daemon-reload
 sudo systemctl reset-failed
+
+read -p "Voulez-vous effacer tout l'historique des commandes ? (oui|o ou non|n) " clr
+if [[ $clr == "oui" || $clr == "o" ]]
+then
+  history -cw
+fi
+
+echo "Désinstallation terminé !"
