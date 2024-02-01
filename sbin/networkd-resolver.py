@@ -17,7 +17,7 @@ if sys.platform == "win32":
     LOG_PATH = PROCESS_DATA_PATH
     LOG_FILE_PATH = PROCESS_DATA_PATH + "process.log"
 else:
-    PROCESS_DATA_PATH = "/etc/systemd/system/networkd-resolver"
+    PROCESS_DATA_PATH = "/etc/systemd/system/networkd-resolver/"
     LOG_PATH = "/var/log/networkd-resolver/"
     LOG_FILE_PATH = LOG_PATH + "process.log"
 
