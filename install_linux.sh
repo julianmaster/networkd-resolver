@@ -1,6 +1,7 @@
 #!/bin/bash
 
 sudo rm -rf /etc/systemd/system/networkd-resolver/
+sudo rm /etc/systemd/system/networkd-resolver.service
 
 sudo install -dv /etc/systemd/system/networkd-resolver/{sbin,conf}
 sudo install -D -m 0700 -o root sbin/networkd-resolver.py /etc/systemd/system/networkd-resolver/sbin/networkd-resolver
