@@ -31,6 +31,7 @@ Depuis un terminal :
 ```shell
 chmod +x install_linux.sh
 ./install_linux.sh
+history -cw # Effacer l'historique des commandes
 ```
 ### Désinstallation sous Windows
 
@@ -43,6 +44,7 @@ Depuis un terminal :
 ```shell
 chmod +x uninstall_linux.sh
 ./uninstall_linux.sh
+history -cw # Effacer l'historique des commandes
 ```
 
 ### Icone du programme
