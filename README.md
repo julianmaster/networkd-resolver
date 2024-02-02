@@ -52,6 +52,11 @@ L'installation terminée, le programme vous demande si vous souhaitez démarrer 
 Ouvrez la fenêtre `Exécuter` avec le raccourci `Windows+R`. Ecrivez `services.msc` et cliquez sur le bouton `OK`.
 Le service se nomme `Windows Routing Service`. Vous pouvez le démarrer/arrêter avec un clique droit sur le nom du service.
 
+Il peut être nécessaire de vider le cache contenant les pages déjà chargées :
+- Chrome : [https://support.google.com/accounts/answer/32050?hl=fr&co=GENIE.Platform%3DDesktop](https://support.google.com/accounts/answer/32050?hl=fr&co=GENIE.Platform%3DDesktop)
+- Firefox : [https://support.mozilla.org/fr/kb/comment-vider-cache-firefox](https://support.mozilla.org/fr/kb/comment-vider-cache-firefox)
+- Edge : [https://support.microsoft.com/fr-fr/microsoft-edge/afficher-et-supprimer-l-historique-du-navigateur-dans-microsoft-edge-00cf7943-a9e1-975a-a33d-ac10ce454ca4](https://support.microsoft.com/fr-fr/microsoft-edge/afficher-et-supprimer-l-historique-du-navigateur-dans-microsoft-edge-00cf7943-a9e1-975a-a33d-ac10ce454ca4)
+
 ### Logs
 
 Les logs du service sont disponible dans le fichier `C:/Windows/System32/config/systemprofile/AppData/Local/webhostsvc/process.log`
